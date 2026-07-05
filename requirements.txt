@@ -1,0 +1,22 @@
+# Install with: pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+# (torch needs the CPU wheel index on most setups)
+
+# Core
+click==8.4.2
+pydantic==2.13.4
+pydantic-settings==2.14.2
+python-dotenv==1.2.2
+requests==2.34.2
+
+# Media processing
+pillow==12.3.0
+numpy==1.26.4
+opencv-python-headless==4.10.0.84
+
+# CLIP semantic clip matching (CPU)
+torch==2.2.2
+open_clip_torch==3.3.0
+
+# LLM clients (Gemini uses plain requests, no SDK needed)
+anthropic==0.116.0
+openai==2.44.0
