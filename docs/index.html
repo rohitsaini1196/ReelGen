@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReelGen — AI video pipelines that don't look like AI</title>
+<meta name="description" content="Two open-source, local-first pipelines: topic → edited stock-footage reel, and reddit-style story → narrated gameplay reel. Pennies per video.">
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #14171c;
+    --text: #e8eaed;
+    --muted: #9aa3ad;
+    --accent: #ffc832;
+    --accent2: #7c5cff;
+    --border: #232830;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  header { padding: 96px 0 64px; text-align: center; }
+  .logo { font-size: 15px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 24px; }
+  h1 { font-size: clamp(32px, 6vw, 56px); font-weight: 800; line-height: 1.15; }
+  h1 .hl { color: var(--accent); }
+  .sub { font-size: clamp(16px, 2.5vw, 20px); color: var(--muted); max-width: 640px; margin: 20px auto 0; }
+  .cta-row { margin-top: 36px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 13px 26px; border-radius: 10px; font-weight: 600;
+    text-decoration: none; font-size: 16px; transition: transform .15s ease, opacity .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); opacity: .92; }
+  .btn-primary { background: var(--accent); color: #111; }
+  .btn-ghost { border: 1px solid var(--border); color: var(--text); }
+  section { padding: 56px 0; border-top: 1px solid var(--border); }
+  .kicker { font-size: 13px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  h2 { font-size: clamp(26px, 4vw, 36px); margin: 10px 0 8px; }
+  .lede { color: var(--muted); max-width: 680px; }
+  .videos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 36px; }
+  .vcard { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .vcard video { width: 100%; display: block; aspect-ratio: 9/16; object-fit: cover; background: #000; }
+  .vcard .cap { padding: 12px 14px; font-size: 14px; color: var(--muted); }
+  .vcard .cap b { color: var(--text); display: block; margin-bottom: 2px; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 32px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+  .card h3 { font-size: 19px; margin-bottom: 8px; }
+  .card p { color: var(--muted); font-size: 15px; }
+  .card .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; margin-bottom: 14px; }
+  .tag-a { background: rgba(255,200,50,.12); color: var(--accent); }
+  .tag-b { background: rgba(124,92,255,.14); color: #a794ff; }
+  pre {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; overflow-x: auto; font-size: 14px; margin-top: 14px;
+    color: #c9d1d9; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  pre .c { color: #8b949e; }
+  .steps { margin-top: 32px; display: grid; gap: 0; }
+  .step { display: flex; gap: 18px; padding: 16px 0; border-bottom: 1px dashed var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step .n {
+    flex: 0 0 34px; height: 34px; border-radius: 50%; background: var(--panel);
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: var(--accent);
+  }
+  .step p { color: var(--muted); font-size: 15px; }
+  .step b { color: var(--text); }
+  .honest { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 10px; padding: 20px 24px; margin-top: 32px; }
+  .honest ul { list-style: none; }
+  .honest li { color: var(--muted); font-size: 15px; padding: 5px 0 5px 24px; position: relative; }
+  .honest li::before { content: "→"; position: absolute; left: 0; color: var(--accent); }
+  footer { padding: 48px 0 64px; text-align: center; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); }
+  footer a { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="logo">ReelGen</div>
+  <h1>AI video pipelines that<br><span class="hl">don't look like AI.</span></h1>
+  <p class="sub">Two open-source, local-first pipelines. Type a topic or a mood — get a finished, captioned, vertical reel. Rendered on your own machine, pennies per video, and you're always the last set of eyes before anything posts.</p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/rohitsaini1196/ReelGen">View on GitHub</a>
+    <a class="btn btn-ghost" href="#samples">Watch samples</a>
+  </div>
+</header>
+
+<section id="samples">
+  <div class="wrap">
+    <span class="kicker">Straight out of the pipeline</span>
+    <h2>Unedited samples</h2>
+    <p class="lede">Nothing here was touched after rendering. LLM-written script, local TTS narration, word-synced captions, automated edit — end to end.</p>
+    <div class="videos">
+      <div class="vcard">
+        <video src="assets/brainrot_funny.mp4" controls preload="metadata" playsinline></video>
+        <div class="cap"><b>Brainrot · funny</b>Story, narration &amp; karaoke captions — all generated</div>
+      </div>
+      <div class="vcard">
+        <video src="assets/brainrot_touchy.mp4" controls preload="metadata" playsinline></video>
+        <div class="cap"><b>Brainrot · wholesome</b>Different mood, different narrator voice</div>
+      </div>
+      <div class="vcard">
+        <video src="assets/brainrot_realization.mp4" controls preload="metadata" playsinline></video>
+        <div class="cap"><b>Brainrot · self-realization</b>Word-level caption sync via forced alignment</div>
+      </div>
+      <div class="vcard">
+        <video src="assets/reelgen_deepwork.mp4" controls preload="metadata" playsinline></video>
+        <div class="cap"><b>ReelGen · topic reel</b>CLIP-matched stock footage, graded &amp; captioned</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="kicker">Two products, one philosophy</span>
+    <h2>Pick your format</h2>
+    <div class="grid2">
+      <div class="card">
+        <span class="tag tag-a">ReelGen</span>
+        <h3>Topic → edited stock-footage reel</h3>
+        <p>An LLM plans the storyboard (hook, beats, closer). CLIP semantically matches every beat to real footage — scored on sharpness, palette and motion before the best clip wins. FFmpeg does actual color science, Ken Burns motion and mood-matched transitions. Animated text that looks IG-native, not watermarked-app.</p>
+        <pre>python reelgen.py generate \
+  --topic "Hidden cafes in Tokyo" \
+  --mood calm --style warm-analog</pre>
+      </div>
+      <div class="card">
+        <span class="tag tag-b">Brainrot</span>
+        <h3>Mood → narrated gameplay reel</h3>
+        <p>An LLM writes an 8–20s reddit-style micro-story. Kokoro-82M narrates it locally, for free. faster-whisper timestamps every word, karaoke captions get burned in over randomly-sliced gameplay footage. The format that floods Shorts — except yours costs nothing to make.</p>
+        <pre>python brainrot.py generate \
+  --mood funny --telegram</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="kicker">Under the hood</span>
+    <h2>How a Brainrot reel happens</h2>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><p><b>Story.</b> LLM writes a punchy first-person micro-story in two synced versions: one spelled out for the TTS engine, one formatted for on-screen captions.</p></div>
+      <div class="step"><div class="n">2</div><p><b>Voice.</b> Kokoro-82M (Apache 2.0, runs on CPU) narrates. Three narrator voices, zero API cost.</p></div>
+      <div class="step"><div class="n">3</div><p><b>Alignment.</b> faster-whisper transcribes the audio for timestamps — trusted for timing, never for spelling — then timings snap onto the known script text.</p></div>
+      <div class="step"><div class="n">4</div><p><b>Captions.</b> Real ASS subtitles with word-level karaoke highlight, burned in by libass. Not frame-by-frame image hacks.</p></div>
+      <div class="step"><div class="n">5</div><p><b>Edit.</b> Random non-repeating gameplay slices, concatenated to the narration's exact length, cropped to 1080×1920 — one ffmpeg pass.</p></div>
+      <div class="step"><div class="n">6</div><p><b>Review.</b> Finished reel lands in your Telegram. No auto-posting, by design.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="kicker">No hype</span>
+    <h2>The honest part</h2>
+    <div class="honest">
+      <ul>
+        <li>Renders take 1–3 minutes per video on CPU — this is a batch tool, not a realtime toy.</li>
+        <li>Free LLM tiers are tight (~20 videos/day on Gemini's free key). Volume needs a paid key.</li>
+        <li>Gameplay footage isn't included — bring footage you have the rights to use.</li>
+        <li>Good editing doesn't guarantee views. Posting cadence and trends still matter more than the cut.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>MIT licensed · built by <a href="https://rohitsaini.me">Rohit Saini</a> · <a href="https://github.com/rohitsaini1196/ReelGen">github.com/rohitsaini1196/ReelGen</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

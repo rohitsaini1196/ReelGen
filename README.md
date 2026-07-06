@@ -2,6 +2,11 @@
 
 **Turn a topic into a scroll-stopping Instagram Reel — automatically.**
 
+> This repo ships two pipelines: **ReelGen** (topic → stock-footage reel, below) and
+> **[🧠 Brainrot](brainrot/README.md)** (reddit-style micro-story → local TTS narration +
+> word-synced karaoke captions over gameplay footage). Same philosophy — local-first,
+> pennies per video, no auto-posting — different formats.
+
 ReelGen is a local-first pipeline that takes a topic string and produces a fully edited, color-graded, captioned 15-30s vertical reel that looks like a human cut it in CapCut — not something an AI spat out. No cloud rendering, no subscription, pennies of API cost per reel.
 
 ```bash
