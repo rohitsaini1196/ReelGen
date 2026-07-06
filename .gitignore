@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .claude/
+.DS_Store
 
 .env
 
@@ -14,5 +15,12 @@ output/*
 library/*.mp4
 library/*.mov
 !library/index.json
+
+brainrot/library/gameplay/*.mp4
+brainrot/library/gameplay/*.mov
+!brainrot/library/gameplay/.gitkeep
+
+brainrot/bin/
+brainrot/.venv/
 
 *.mov

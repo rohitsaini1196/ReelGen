@@ -1,5 +1,15 @@
+import socket
 import requests
+import urllib3.util.connection as urllib3_cn
 from config import settings
+
+# This network's IPv6 route to api.telegram.org is dead (connect hangs in SYN_SENT well past
+# any request timeout), while IPv4 connects instantly. Force IPv4 so delivery never hangs on it.
+def _allowed_gai_family():
+    return socket.AF_INET
+
+
+urllib3_cn.allowed_gai_family = _allowed_gai_family
 
 
 def send_reel(video_path: str, caption: str) -> bool:
