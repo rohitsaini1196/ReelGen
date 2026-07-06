@@ -16,11 +16,11 @@ class KokoroTTS:
         self.pipeline = KPipeline(lang_code=lang_code)
         self.voice = voice
 
-    def synthesize(self, spoken_script: str, out_path: str) -> float:
+    def synthesize(self, spoken_script: str, out_path: str, voice: str = None) -> float:
         """Synthesize spoken_script to a wav file at out_path. Returns duration in seconds."""
         clean_text = normalize_for_tts(spoken_script)
         chunks = []
-        for _, _, audio in self.pipeline(clean_text, voice=self.voice):
+        for _, _, audio in self.pipeline(clean_text, voice=voice or self.voice):
             chunks.append(audio)
         if not chunks:
             raise RuntimeError("Kokoro produced no audio for input text")

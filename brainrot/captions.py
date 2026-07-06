@@ -1,5 +1,19 @@
+import re
 from typing import List
 from brainrot.align import WordTiming
+
+# libass (via ffmpeg's static build) has no reliable color-emoji fallback - burning emoji in
+# renders as a tofu box, not the glyph. Drop emoji-only tokens from captions rather than show that.
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001F300-\U0001FAFF"
+    "\U00002600-\U000027BF"
+    "\U0001F1E6-\U0001F1FF"
+    "\U00002190-\U000021FF"
+    "‍️"
+    "]+",
+    flags=re.UNICODE,
+)
 
 RESOLUTION = (1080, 1920)
 FONT_NAME = "Montserrat"
@@ -56,6 +70,15 @@ def build_ass(
 ) -> str:
     if not words:
         raise ValueError("no words to caption")
+
+    cleaned = []
+    for w in words:
+        text = _EMOJI_RE.sub("", w.word).strip()
+        if text:
+            cleaned.append(WordTiming(text, w.start, w.end))
+    words = cleaned
+    if not words:
+        raise ValueError("no words left to caption after stripping emoji")
 
     header = ASS_HEADER.format(
         res_x=resolution[0],
