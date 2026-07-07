@@ -1,178 +1,887 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ReelGen — AI video pipelines that don't look like AI</title>
-<meta name="description" content="Two open-source, local-first pipelines: topic → edited stock-footage reel, and reddit-style story → narrated gameplay reel. Pennies per video.">
-<style>
-  :root {
-    --bg: #0b0d10;
-    --panel: #14171c;
-    --text: #e8eaed;
-    --muted: #9aa3ad;
-    --accent: #ffc832;
-    --accent2: #7c5cff;
-    --border: #232830;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.6;
-  }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
-  header { padding: 96px 0 64px; text-align: center; }
-  .logo { font-size: 15px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 24px; }
-  h1 { font-size: clamp(32px, 6vw, 56px); font-weight: 800; line-height: 1.15; }
-  h1 .hl { color: var(--accent); }
-  .sub { font-size: clamp(16px, 2.5vw, 20px); color: var(--muted); max-width: 640px; margin: 20px auto 0; }
-  .cta-row { margin-top: 36px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-  .btn {
-    display: inline-block; padding: 13px 26px; border-radius: 10px; font-weight: 600;
-    text-decoration: none; font-size: 16px; transition: transform .15s ease, opacity .15s ease;
-  }
-  .btn:hover { transform: translateY(-1px); opacity: .92; }
-  .btn-primary { background: var(--accent); color: #111; }
-  .btn-ghost { border: 1px solid var(--border); color: var(--text); }
-  section { padding: 56px 0; border-top: 1px solid var(--border); }
-  .kicker { font-size: 13px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--accent); font-weight: 700; }
-  h2 { font-size: clamp(26px, 4vw, 36px); margin: 10px 0 8px; }
-  .lede { color: var(--muted); max-width: 680px; }
-  .videos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 36px; }
-  .vcard { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-  .vcard video { width: 100%; display: block; aspect-ratio: 9/16; object-fit: cover; background: #000; }
-  .vcard .cap { padding: 12px 14px; font-size: 14px; color: var(--muted); }
-  .vcard .cap b { color: var(--text); display: block; margin-bottom: 2px; }
-  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 32px; }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
-  .card h3 { font-size: 19px; margin-bottom: 8px; }
-  .card p { color: var(--muted); font-size: 15px; }
-  .card .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; margin-bottom: 14px; }
-  .tag-a { background: rgba(255,200,50,.12); color: var(--accent); }
-  .tag-b { background: rgba(124,92,255,.14); color: #a794ff; }
-  pre {
-    background: #0d1117; border: 1px solid var(--border); border-radius: 10px;
-    padding: 16px 18px; overflow-x: auto; font-size: 14px; margin-top: 14px;
-    color: #c9d1d9; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  pre .c { color: #8b949e; }
-  .steps { margin-top: 32px; display: grid; gap: 0; }
-  .step { display: flex; gap: 18px; padding: 16px 0; border-bottom: 1px dashed var(--border); }
-  .step:last-child { border-bottom: none; }
-  .step .n {
-    flex: 0 0 34px; height: 34px; border-radius: 50%; background: var(--panel);
-    border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 14px; color: var(--accent);
-  }
-  .step p { color: var(--muted); font-size: 15px; }
-  .step b { color: var(--text); }
-  .honest { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 10px; padding: 20px 24px; margin-top: 32px; }
-  .honest ul { list-style: none; }
-  .honest li { color: var(--muted); font-size: 15px; padding: 5px 0 5px 24px; position: relative; }
-  .honest li::before { content: "→"; position: absolute; left: 0; color: var(--accent); }
-  footer { padding: 48px 0 64px; text-align: center; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); }
-  footer a { color: var(--text); }
-</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <title>ReelGen — AI video pipelines that don't look like AI</title>
+  <meta name="description" content="Open-source CLI. Text topic → color-graded, captioned vertical reel. CLIP semantic footage matching, real color science. Runs locally.">
+  <meta property="og:title" content="ReelGen — AI video pipelines that don't look like AI">
+  <meta property="og:description" content="Open-source, local-first. Topic in, reel out. CLIP footage matching, real color science, $0.01/video.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: #0e0d0b; color: #e2ddd6; font-family: 'IBM Plex Sans', sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    a:hover { color: #ffc832; }
+    ::selection { background: #ffc832; color: #0e0d0b; }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 9997; opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 180px 180px;
+    }
+    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+    [data-reveal] { opacity: 0; transform: translateY(18px); transition: opacity 0.72s cubic-bezier(0.22,1,0.36,1), transform 0.72s cubic-bezier(0.22,1,0.36,1); }
+    [data-reveal].is-visible { opacity: 1; transform: none; }
+    [data-reveal][data-delay="1"] { transition-delay: 0.12s; }
+    [data-reveal][data-delay="2"] { transition-delay: 0.24s; }
+    [data-reveal][data-delay="3"] { transition-delay: 0.36s; }
+    [data-reveal][data-delay="4"] { transition-delay: 0.5s; }
+    .ps-box { transition: border-color 0.35s ease; }
+    .ps-tick { transition: border-color 0.35s ease; }
+    .ps-label { transition: color 0.35s ease; }
+    .ps-icon { color: #3a3830; transition: color 0.35s ease; }
+    .ps-root.active .ps-box { border-color: #ffc832 !important; }
+    .ps-root.active .ps-tick { border-color: #ffc832 !important; }
+    .ps-root.active .ps-label { color: #ffc832 !important; }
+    .ps-root.active .ps-icon { color: #ffc832 !important; }
+    #pp-title, #pp-annot, #pp-sub { transition: opacity 0.22s ease; }
+    #hero-topic { transition: opacity 0.22s ease, transform 0.22s ease; }
+    .cta-primary { transition: background 0.14s, border-color 0.14s; }
+    .cta-primary:hover { background: #e6b42d !important; border-color: #e6b42d !important; }
+    .cta-secondary { transition: border-color 0.14s, color 0.14s; }
+    .cta-secondary:hover { border-color: #3a3830 !important; color: #e2ddd6 !important; }
+    .nav-link { transition: color 0.14s; }
+    .nav-link:hover { color: #e2ddd6 !important; }
+    .text-link { position: relative; display: inline; }
+    .text-link::after { content: ''; position: absolute; left: 0; bottom: -1px; width: 0; height: 1px; background: currentColor; transition: width 0.28s cubic-bezier(0.22,1,0.36,1); }
+    .text-link:hover::after { width: 100%; }
+    .video-frame { cursor: pointer; }
+    .video-frame .play-hint { transition: opacity 0.18s; }
+    .video-frame:hover .play-hint { opacity: 0 !important; }
+    .kw { transition: color 0.16s; }
+    .kw.kw-active { color: #7c6aab !important; }
+    .limit-row { transition: background 0.12s; }
+    .limit-row:hover { background: #141310 !important; }
+    .limit-row:hover .limit-hash { color: #ffc832 !important; }
+    #terminal-output { transition: opacity 0.35s; }
+    @media (max-width: 860px) {
+      .hero-grid { grid-template-columns: 1fr !important; }
+      .hero-phone-col { display: none !important; }
+      .pipeline-desktop-view { display: none !important; }
+      .pipeline-mobile-view { display: block !important; }
+      .samples-flex { flex-direction: column !important; align-items: center !important; }
+      .brainrot-samples-row { flex-wrap: wrap !important; justify-content: center !important; }
+      .footer-inner { flex-direction: column !important; gap: 20px !important; text-align: center !important; }
+    }
+    @media (min-width: 861px) { .pipeline-mobile-view { display: none !important; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+      [data-reveal] { opacity: 1 !important; transform: none !important; }
+    }
+  </style>
 </head>
 <body>
-
-<header class="wrap">
-  <div class="logo">ReelGen</div>
-  <h1>AI video pipelines that<br><span class="hl">don't look like AI.</span></h1>
-  <p class="sub">Two open-source, local-first pipelines. Type a topic or a mood — get a finished, captioned, vertical reel. Rendered on your own machine, pennies per video, and you're always the last set of eyes before anything posts.</p>
-  <div class="cta-row">
-    <a class="btn btn-primary" href="https://github.com/rohitsaini1196/ReelGen">View on GitHub</a>
-    <a class="btn btn-ghost" href="#samples">Watch samples</a>
+<!-- FIXED HEADER -->
+<header style="position:fixed;top:0;left:0;right:0;z-index:200;background:#0e0d0b;border-bottom:1px solid #1a1812;height:48px">
+  <div style="max-width:1440px;margin:0 auto;padding:0 clamp(20px,4vw,72px);height:100%;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:14px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;letter-spacing:0.1em;color:#e2ddd6">REELGEN</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830;letter-spacing:0.08em">v0.1 · MIT</span>
+    </div>
+    <nav style="display:flex;align-items:center;gap:28px">
+      <a href="#pipeline" class="nav-link" style="font-size:12px;color:#6a6460;letter-spacing:0.04em">Pipeline</a>
+      <a href="#samples" class="nav-link" style="font-size:12px;color:#6a6460;letter-spacing:0.04em">Samples</a>
+      <a href="#brainrot" class="nav-link" style="font-size:12px;color:#6a6460;letter-spacing:0.04em">Brainrot</a>
+      <a href="https://github.com/rohitsaini1196/ReelGen" target="_blank" rel="noopener" class="nav-link" style="font-size:12px;color:#ffc832;letter-spacing:0.04em;font-weight:500">GitHub →</a>
+    </nav>
   </div>
 </header>
 
-<section id="samples">
-  <div class="wrap">
-    <span class="kicker">Straight out of the pipeline</span>
-    <h2>Unedited samples</h2>
-    <p class="lede">Nothing here was touched after rendering. LLM-written script, local TTS narration, word-synced captions, automated edit — end to end.</p>
-    <div class="videos">
-      <div class="vcard">
-        <video src="assets/brainrot_funny.mp4" controls preload="metadata" playsinline></video>
-        <div class="cap"><b>Brainrot · funny</b>Story, narration &amp; karaoke captions — all generated</div>
+<!-- ═══════════════════════════════════════ HERO ═══ -->
+<section id="hero" style="min-height:100vh;padding-top:48px;position:relative;background:#0e0d0b">
+
+  <!-- Timecode strip -->
+  <div style="border-bottom:1px solid #1a1812;padding:7px clamp(20px,4vw,72px)">
+    <div style="max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.1em">00:00:00:00</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830;letter-spacing:0.12em">01 / 05 · HERO</span>
+    </div>
+  </div>
+
+  <div style="max-width:1440px;margin:0 auto;padding:0 clamp(20px,4vw,72px)">
+    <div class="hero-grid" style="display:grid;grid-template-columns:1fr 280px;gap:48px 64px;align-items:start;padding-top:clamp(40px,7vh,80px)">
+
+      <!-- Left col -->
+      <div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#4a4640;letter-spacing:0.14em;margin-bottom:clamp(20px,3.5vh,40px)" data-reveal="">01 — OPEN SOURCE · LOCAL FIRST · 9:16</div>
+
+        <h1 style="font-family:'Cormorant Garamond',serif;font-size:clamp(3.4rem,7.8vw,8.2rem);line-height:0.92;font-weight:700;letter-spacing:-0.025em;color:#e2ddd6;margin-bottom:clamp(20px,3.5vh,44px)" data-reveal="" data-delay="1">
+          AI video<br>
+          pipelines<br>
+          <em style="font-style:italic;color:#8a8078">that don't</em><br>
+          look like AI.
+        </h1>
+
+        <div style="margin-bottom:clamp(14px,2.5vh,24px);font-size:clamp(0.9rem,1.5vw,1.15rem);color:#6a6460;font-weight:300;line-height:1.5" data-reveal="" data-delay="2">
+          Turning&nbsp;<span id="hero-topic" style="color:#ffc832;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(1rem,1.65vw,1.25rem);font-weight:600">"hidden cafes in Tokyo"</span>&nbsp;into a reel.
+        </div>
+
+        <p style="font-size:clamp(0.85rem,1.1vw,0.9375rem);color:#6a6460;line-height:1.72;max-width:440px;margin-bottom:clamp(28px,4.5vh,52px);font-weight:300" data-reveal="" data-delay="3">
+          A CLI that takes a text topic and returns a color-graded, captioned 9:16 reel.
+          CLIP semantic footage matching, real color science, word-synced captions.
+          Runs locally. Costs pennies.
+        </p>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:clamp(36px,5.5vh,64px)" data-reveal="" data-delay="4">
+          <a href="https://github.com/rohitsaini1196/ReelGen" target="_blank" rel="noopener" class="cta-primary" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#ffc832;color:#0e0d0b;font-size:13px;font-weight:500;letter-spacing:0.04em;border:1px solid #ffc832">
+            View on GitHub
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 9L9 2M9 2H3.5M9 2V7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </a>
+          <a href="#samples" class="cta-secondary" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:transparent;color:#7a7468;font-size:13px;font-weight:400;letter-spacing:0.04em;border:1px solid #252218">
+            Watch samples
+          </a>
+        </div>
+
+        <!-- Terminal -->
+        <div style="animation:fadeUp 0.7s 0.6s cubic-bezier(0.22,1,0.36,1) both">
+          <div style="border:1px solid #1f1d19;background:#0a0908;max-width:580px">
+            <div style="padding:7px 12px;border-bottom:1px solid #1a1812;display:flex;align-items:center;gap:5px">
+              <div style="width:7px;height:7px;border-radius:50%;background:#252218"></div>
+              <div style="width:7px;height:7px;border-radius:50%;background:#252218"></div>
+              <div style="width:7px;height:7px;border-radius:50%;background:#252218"></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830;margin-left:8px;letter-spacing:0.08em">reelgen — zsh</span>
+            </div>
+            <div style="padding:13px 16px;min-height:118px;overflow:hidden">
+              <pre id="terminal-output" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2ddd6;white-space:pre-wrap;word-break:break-word;margin:0;display:inline"></pre><span id="term-cursor" style="display:inline-block;width:6px;height:13px;background:#ffc832;vertical-align:text-bottom;animation:blink 1s step-start infinite;margin-left:1px"></span>
+            </div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.08em;margin-top:6px;padding-left:2px">runs locally · no cloud · bring your own key</div>
+        </div>
       </div>
-      <div class="vcard">
-        <video src="assets/brainrot_touchy.mp4" controls preload="metadata" playsinline></video>
-        <div class="cap"><b>Brainrot · wholesome</b>Different mood, different narrator voice</div>
+
+      <!-- Right col: phone frame (bleeds below hero) -->
+      <div class="hero-phone-col" style="position:relative;z-index:10;margin-bottom:-120px;padding-top:12px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830;letter-spacing:0.1em;margin-bottom:8px;text-align:right">9:16 · 1080×1920</div>
+        <div style="position:relative;width:240px;margin-left:auto;border:1.5px solid #252218;border-radius:32px;overflow:hidden;background:#0a0908;aspect-ratio:9/16;box-shadow:0 0 0 8px #0e0d0b,0 24px 64px rgba(0,0,0,0.6)">
+          <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);width:52px;height:5px;background:#141310;border-radius:3px;z-index:3"></div>
+          <video src="assets/sample1.mp4" autoplay="" muted="" loop="" playsinline="" preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;background:#0c0b09"></video>
+          <div style="position:absolute;inset:0;pointer-events:none">
+            <div style="position:absolute;top:23px;left:10px;font-family:'IBM Plex Mono',monospace;font-size:7px;color:#ffc832;letter-spacing:0.1em;opacity:0.85">● REC</div>
+            <div style="position:absolute;top:23px;right:10px;font-family:'IBM Plex Mono',monospace;font-size:7px;color:#fff;letter-spacing:0.06em;opacity:0.3">00:00:14:23</div>
+            <div style="position:absolute;bottom:36px;left:0;right:0;display:flex;justify-content:center;padding:0 14px">
+              <span id="phone-caption" style="background:rgba(0,0,0,0.85);color:#fff;font-size:10px;font-weight:500;padding:3px 10px;letter-spacing:0.02em;font-family:'IBM Plex Sans',sans-serif;text-align:center">hidden cafes in tokyo</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#2e2c28;letter-spacing:0.08em;margin-top:10px;text-align:center">zero human edits</div>
       </div>
-      <div class="vcard">
-        <video src="assets/brainrot_realization.mp4" controls preload="metadata" playsinline></video>
-        <div class="cap"><b>Brainrot · self-realization</b>Word-level caption sync via forced alignment</div>
-      </div>
-      <div class="vcard">
-        <video src="assets/reelgen_deepwork.mp4" controls preload="metadata" playsinline></video>
-        <div class="cap"><b>ReelGen · topic reel</b>CLIP-matched stock footage, graded &amp; captioned</div>
+
+    </div>
+  </div>
+
+  <!-- Section bottom edge -->
+  <div style="border-top:1px solid #1a1812;margin-top:clamp(48px,8vh,96px)"></div>
+</section>
+
+<!-- ═══════════════════════════════════ PIPELINE ═══ -->
+<section id="pipeline" style="position:relative;background:#0e0d0b">
+
+  <!-- Section strip -->
+  <div style="border-bottom:1px solid #1a1812;padding:10px clamp(20px,4vw,72px)">
+    <div style="max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.1em">02 / 05</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a4640;letter-spacing:0.14em">PIPELINE</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.1em">00:01:28:00</span>
+    </div>
+  </div>
+
+  <!-- Desktop sticky scroll (700vh) -->
+  <div class="pipeline-desktop-view" id="pipeline-container" style="height:700vh;position:relative">
+    <div style="position:sticky;top:0;height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:center">
+      <div style="max-width:1440px;margin:0 auto;width:100%;padding:0 clamp(20px,4vw,72px)">
+
+        <div style="margin-bottom:44px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a4640;letter-spacing:0.14em;margin-bottom:10px">TEXT TOPIC → VERTICAL REEL</div>
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,3.5vw,3.2rem);font-weight:600;color:#e2ddd6;letter-spacing:-0.015em;line-height:1">
+            topic → reel. <em style="font-style:italic;color:#6a6460">seven stages.</em>
+          </h2>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830;letter-spacing:0.08em;margin-top:8px">scroll to trace the pipeline</div>
+        </div>
+
+        <!-- Stage strip -->
+        <div style="position:relative">
+          <!-- Background line -->
+          <div style="position:absolute;top:36px;left:0;right:0;height:1px;background:#1f1d19"></div>
+          <!-- Progress line -->
+          <div id="pp-line" style="position:absolute;top:36px;left:0;width:0;height:1px;background:#ffc832;transition:width 0.45s cubic-bezier(0.22,1,0.36,1)"></div>
+
+          <!-- Stages -->
+          <div style="display:flex;justify-content:space-between">
+
+            <!-- Stage 0: INPUT -->
+            <div class="ps-root" id="pstage-0" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div class="ps-box" style="position:relative;width:72px;height:72px;border:1.5px solid #252218;background:#141310;display:flex;align-items:center;justify-content:center">
+                <div class="ps-tick" style="position:absolute;top:-2px;left:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;left:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;right:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-icon">
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="currentColor">
+                    <rect x="4" y="8" width="20" height="2" rx="0.5"></rect><rect x="4" y="13" width="16" height="2" rx="0.5"></rect><rect x="4" y="18" width="12" height="2" rx="0.5"></rect>
+                  </svg>
+                </div>
+              </div>
+              <div class="ps-label" style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.12em;color:#4a4640;text-align:center">INPUT</div>
+            </div>
+
+            <!-- Stage 1: STORYBOARD -->
+            <div class="ps-root" id="pstage-1" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div class="ps-box" style="position:relative;width:72px;height:72px;border:1.5px solid #252218;background:#141310;display:flex;align-items:center;justify-content:center">
+                <div class="ps-tick" style="position:absolute;top:-2px;left:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;left:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;right:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-icon">
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="5" width="9" height="7"></rect><rect x="16" y="5" width="9" height="7"></rect>
+                    <rect x="3" y="16" width="22" height="2" fill="currentColor" stroke="none" opacity="0.5"></rect><rect x="3" y="20" width="16" height="2" fill="currentColor" stroke="none" opacity="0.4"></rect>
+                  </svg>
+                </div>
+              </div>
+              <div class="ps-label" style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.12em;color:#4a4640;text-align:center">STORY</div>
+            </div>
+
+            <!-- Stage 2: CLIP MATCH -->
+            <div class="ps-root" id="pstage-2" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div class="ps-box" style="position:relative;width:72px;height:72px;border:1.5px solid #252218;background:#141310;display:flex;align-items:center;justify-content:center">
+                <div class="ps-tick" style="position:absolute;top:-2px;left:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;left:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;right:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-icon">
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="10" height="10"></rect><rect x="15" y="3" width="10" height="10"></rect><rect x="3" y="15" width="10" height="10"></rect><rect x="15" y="15" width="10" height="10" opacity="0.45"></rect>
+                  </svg>
+                </div>
+              </div>
+              <div class="ps-label" style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.12em;color:#4a4640;text-align:center">CLIP</div>
+            </div>
+
+            <!-- Stage 3: GRADE -->
+            <div class="ps-root" id="pstage-3" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div class="ps-box" style="position:relative;width:72px;height:72px;border:1.5px solid #252218;background:#141310;display:flex;align-items:center;justify-content:center">
+                <div class="ps-tick" style="position:absolute;top:-2px;left:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;left:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;right:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-icon">
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="14" cy="14" r="9"></circle>
+                    <path d="M14 5 A9 9 0 0 1 23 14" stroke-width="3" stroke-linecap="round"></path>
+                    <circle cx="14" cy="14" r="2.5" fill="currentColor" stroke="none"></circle>
+                  </svg>
+                </div>
+              </div>
+              <div class="ps-label" style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.12em;color:#4a4640;text-align:center">GRADE</div>
+            </div>
+
+            <!-- Stage 4: MOTION -->
+            <div class="ps-root" id="pstage-4" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div class="ps-box" style="position:relative;width:72px;height:72px;border:1.5px solid #252218;background:#141310;display:flex;align-items:center;justify-content:center">
+                <div class="ps-tick" style="position:absolute;top:-2px;left:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;left:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;right:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-icon">
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <line x1="4" y1="14" x2="24" y2="14"></line>
+                    <line x1="4" y1="9" x2="18" y2="9" opacity="0.5"></line><line x1="4" y1="19" x2="18" y2="19" opacity="0.5"></line>
+                    <path d="M20 9.5 L24 14 L20 18.5" stroke-linejoin="round"></path>
+                  </svg>
+                </div>
+              </div>
+              <div class="ps-label" style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.12em;color:#4a4640;text-align:center">MOTION</div>
+            </div>
+
+            <!-- Stage 5: CAPTIONS -->
+            <div class="ps-root" id="pstage-5" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div class="ps-box" style="position:relative;width:72px;height:72px;border:1.5px solid #252218;background:#141310;display:flex;align-items:center;justify-content:center">
+                <div class="ps-tick" style="position:absolute;top:-2px;left:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;left:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;right:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-icon">
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="8" width="22" height="13" rx="1.5"></rect>
+                    <rect x="7" y="13" width="14" height="1.5" fill="currentColor" stroke="none"></rect>
+                    <rect x="7" y="17" width="9" height="1.5" fill="currentColor" stroke="none" opacity="0.5"></rect>
+                  </svg>
+                </div>
+              </div>
+              <div class="ps-label" style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.12em;color:#4a4640;text-align:center">CAPS</div>
+            </div>
+
+            <!-- Stage 6: REEL -->
+            <div class="ps-root" id="pstage-6" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+              <div class="ps-box" style="position:relative;width:72px;height:72px;border:1.5px solid #252218;background:#141310;display:flex;align-items:center;justify-content:center">
+                <div class="ps-tick" style="position:absolute;top:-2px;left:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-top:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;left:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-left:1.5px solid #252218"></div>
+                <div class="ps-tick" style="position:absolute;bottom:-2px;right:-2px;width:7px;height:7px;border-bottom:1.5px solid #252218;border-right:1.5px solid #252218"></div>
+                <div class="ps-icon">
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="8" width="24" height="12"></rect>
+                    <rect x="2" y="8" width="5" height="12" fill="currentColor" stroke="none" opacity="0.12"></rect>
+                    <rect x="21" y="8" width="5" height="12" fill="currentColor" stroke="none" opacity="0.12"></rect>
+                    <rect x="9" y="10" width="10" height="8"></rect>
+                    <line x1="4.5" y1="11" x2="4.5" y2="17" opacity="0.4"></line><line x1="23.5" y1="11" x2="23.5" y2="17" opacity="0.4"></line>
+                  </svg>
+                </div>
+              </div>
+              <div class="ps-label" style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:0.12em;color:#4a4640;text-align:center">REEL</div>
+            </div>
+
+          </div><!-- end stages row -->
+
+          <!-- Description area -->
+          <div style="margin-top:52px;padding-left:22px;border-left:2px solid #ffc832;min-height:96px">
+            <div style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.8rem,3vw,2.8rem);font-weight:600;color:#e2ddd6;line-height:1.1;margin-bottom:10px" id="pp-title">Text input</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#ffc832;letter-spacing:0.06em;margin-bottom:8px" id="pp-annot">topic · mood · style — CLI flags</div>
+            <div style="font-size:clamp(0.875rem,1.2vw,0.9375rem);color:#6a6460;line-height:1.68;font-weight:300;max-width:560px" id="pp-sub">Two hooks generated per topic. Best semantic footage match wins.</div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   </div>
+
+  <!-- Mobile pipeline (vertical stepper) -->
+  <div class="pipeline-mobile-view" style="padding:40px clamp(20px,5vw,40px) 48px">
+    <div style="margin-bottom:32px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a4640;letter-spacing:0.14em;margin-bottom:10px">TEXT TOPIC → VERTICAL REEL</div>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:600;color:#e2ddd6;letter-spacing:-0.015em">topic → reel.<br><em style="font-style:italic;color:#6a6460">seven stages.</em></h2>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:0">
+      <div style="display:flex;gap:16px;padding:20px 0;border-bottom:1px solid #1a1812" data-reveal=""><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ffc832;width:28px;flex-shrink:0;padding-top:2px">01</div><div><div style="font-size:1.1rem;font-family:'Cormorant Garamond',serif;font-weight:600;color:#e2ddd6;margin-bottom:4px">Text input</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6a6460">topic · mood · style flags — CLI args</div></div></div>
+      <div style="display:flex;gap:16px;padding:20px 0;border-bottom:1px solid #1a1812" data-reveal="" data-delay="1"><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ffc832;width:28px;flex-shrink:0;padding-top:2px">02</div><div><div style="font-size:1.1rem;font-family:'Cormorant Garamond',serif;font-weight:600;color:#e2ddd6;margin-bottom:4px">LLM storyboard</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6a6460">two hooks generated — best match wins</div></div></div>
+      <div style="display:flex;gap:16px;padding:20px 0;border-bottom:1px solid #1a1812" data-reveal="" data-delay="2"><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ffc832;width:28px;flex-shrink:0;padding-top:2px">03</div><div><div style="font-size:1.1rem;font-family:'Cormorant Garamond',serif;font-weight:600;color:#e2ddd6;margin-bottom:4px">Semantic clip match</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6a6460">CLIP scoring — 4-signal QA</div></div></div>
+      <div style="display:flex;gap:16px;padding:20px 0;border-bottom:1px solid #1a1812" data-reveal="" data-delay="3"><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ffc832;width:28px;flex-shrink:0;padding-top:2px">04</div><div><div style="font-size:1.1rem;font-family:'Cormorant Garamond',serif;font-weight:600;color:#e2ddd6;margin-bottom:4px">Color grade</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6a6460">FFmpeg color science, not filters</div></div></div>
+      <div style="display:flex;gap:16px;padding:20px 0;border-bottom:1px solid #1a1812" data-reveal=""><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ffc832;width:28px;flex-shrink:0;padding-top:2px">05</div><div><div style="font-size:1.1rem;font-family:'Cormorant Garamond',serif;font-weight:600;color:#e2ddd6;margin-bottom:4px">Pacing + motion</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6a6460">cut timing · human-feeling intervals</div></div></div>
+      <div style="display:flex;gap:16px;padding:20px 0;border-bottom:1px solid #1a1812" data-reveal="" data-delay="1"><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ffc832;width:28px;flex-shrink:0;padding-top:2px">06</div><div><div style="font-size:1.1rem;font-family:'Cormorant Garamond',serif;font-weight:600;color:#e2ddd6;margin-bottom:4px">Word-synced captions</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6a6460">Whisper · frame-accurate burn</div></div></div>
+      <div style="display:flex;gap:16px;padding:20px 0" data-reveal="" data-delay="2"><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ffc832;width:28px;flex-shrink:0;padding-top:2px">07</div><div><div style="font-size:1.1rem;font-family:'Cormorant Garamond',serif;font-weight:600;color:#e2ddd6;margin-bottom:4px">Final reel</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ffc832">reel.mp4 ✓ $0.01</div></div></div>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid #1a1812"></div>
 </section>
 
-<section>
-  <div class="wrap">
-    <span class="kicker">Two products, one philosophy</span>
-    <h2>Pick your format</h2>
-    <div class="grid2">
-      <div class="card">
-        <span class="tag tag-a">ReelGen</span>
-        <h3>Topic → edited stock-footage reel</h3>
-        <p>An LLM plans the storyboard (hook, beats, closer). CLIP semantically matches every beat to real footage — scored on sharpness, palette and motion before the best clip wins. FFmpeg does actual color science, Ken Burns motion and mood-matched transitions. Animated text that looks IG-native, not watermarked-app.</p>
-        <pre>python reelgen.py generate \
-  --topic "Hidden cafes in Tokyo" \
-  --mood calm --style warm-analog</pre>
+<!-- ═══════════════════════════════════ SAMPLES ═══ -->
+<section id="samples" style="background:#0e0d0b;padding-bottom:clamp(48px,8vh,96px)">
+
+  <div style="border-bottom:1px solid #1a1812;padding:10px clamp(20px,4vw,72px)">
+    <div style="max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.1em">03 / 05</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a4640;letter-spacing:0.14em">SAMPLES</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.1em">00:02:14:00</span>
+    </div>
+  </div>
+
+  <div style="max-width:1440px;margin:0 auto;padding:clamp(36px,6vh,72px) clamp(20px,4vw,72px) 0">
+
+    <div style="margin-bottom:40px" data-reveal="">
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,4vw,4rem);font-weight:700;color:#e2ddd6;letter-spacing:-0.02em;line-height:0.95;margin-bottom:12px">The output.</h2>
+      <p style="font-size:clamp(0.85rem,1.1vw,0.9375rem);color:#6a6460;font-weight:300;max-width:380px;line-height:1.65">Each reel below was produced end-to-end by the pipeline — script, footage, grade, captions. No manual editing.</p>
+    </div>
+
+    <div class="samples-flex" style="display:flex;gap:28px;align-items:flex-start">
+
+      <!-- Sample 1 -->
+      <div data-reveal="" data-delay="1">
+        <div class="video-frame" style="position:relative;width:260px;border:1px solid #252218;border-radius:24px;overflow:hidden;background:#0a0908;aspect-ratio:9/16">
+          <video class="hover-video" src="assets/sample1.mp4" muted="" loop="" playsinline="" preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;background:#0a0908"></video>
+          <div class="play-hint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35)">
+            <div style="width:44px;height:44px;border:1.5px solid rgba(255,255,255,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="white"><path d="M4 2.5 L11.5 7 L4 11.5 Z"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:0 2px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a4640;letter-spacing:0.08em">script · footage · grade · captions</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830;letter-spacing:0.06em;margin-top:3px">zero human edits</div>
+        </div>
       </div>
-      <div class="card">
-        <span class="tag tag-b">Brainrot</span>
-        <h3>Mood → narrated gameplay reel</h3>
-        <p>An LLM writes an 8–20s reddit-style micro-story. Kokoro-82M narrates it locally, for free. faster-whisper timestamps every word, karaoke captions get burned in over randomly-sliced gameplay footage. The format that floods Shorts — except yours costs nothing to make.</p>
-        <pre>python brainrot.py generate \
-  --mood funny --telegram</pre>
+
+      <!-- Sample 2 -->
+      <div data-reveal="" data-delay="2">
+        <div class="video-frame" style="position:relative;width:260px;border:1px solid #252218;border-radius:24px;overflow:hidden;background:#0a0908;aspect-ratio:9/16">
+          <video class="hover-video" src="assets/sample2.mp4" muted="" loop="" playsinline="" preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;background:#0a0908"></video>
+          <div class="play-hint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35)">
+            <div style="width:44px;height:44px;border:1.5px solid rgba(255,255,255,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="white"><path d="M4 2.5 L11.5 7 L4 11.5 Z"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:0 2px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a4640;letter-spacing:0.08em">script · footage · grade · captions</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830;letter-spacing:0.06em;margin-top:3px">zero human edits</div>
+        </div>
+      </div>
+
+      <!-- Side note: differentiator -->
+      <div style="flex:1;padding-top:24px;max-width:360px" data-reveal="" data-delay="3">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a4640;letter-spacing:0.12em;margin-bottom:16px">WHAT MAKES IT DIFFERENT</div>
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div>
+            <div style="font-size:clamp(0.9rem,1.2vw,1rem);color:#a09080;font-weight:400;margin-bottom:4px">Semantic, not keyword</div>
+            <div style="font-size:0.875rem;color:#6a6460;font-weight:300;line-height:1.65">CLIP embeds understand meaning. "melancholy evening" finds footage that feels that way — not just shots with people outside at night.</div>
+          </div>
+          <div>
+            <div style="font-size:clamp(0.9rem,1.2vw,1rem);color:#a09080;font-weight:400;margin-bottom:4px">Color science, not presets</div>
+            <div style="font-size:0.875rem;color:#6a6460;font-weight:300;line-height:1.65">LUTs derived from footage analysis. warm-analog · cool-stark · raw. FFmpeg pipelines, not Instagram filters.</div>
+          </div>
+          <div>
+            <div style="font-size:clamp(0.9rem,1.2vw,1rem);color:#a09080;font-weight:400;margin-bottom:4px">4-signal QA before edit</div>
+            <div style="font-size:0.875rem;color:#6a6460;font-weight:300;line-height:1.65">Sharpness, palette coherence, motion energy, brightness — every clip scored before it enters the timeline.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div style="border-top:1px solid #1a1812;margin-top:clamp(48px,7vh,80px)"></div>
+</section>
+
+<!-- ══════════════════════════════════ BRAINROT ═══ -->
+<section id="brainrot" style="background:#0d0b12;padding-bottom:clamp(48px,8vh,96px)">
+
+  <div style="border-bottom:1px solid #1c1828;padding:10px clamp(20px,4vw,72px)">
+    <div style="max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2a2234;letter-spacing:0.1em">04 / 05</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a3d6e;letter-spacing:0.14em">BRAINROT · SECONDARY PIPELINE</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2a2234;letter-spacing:0.1em">00:03:46:00</span>
+    </div>
+  </div>
+
+  <div style="max-width:1440px;margin:0 auto;padding:clamp(36px,6vh,72px) clamp(20px,4vw,72px) 0">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;margin-bottom:48px">
+
+      <div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a3d6e;letter-spacing:0.14em;margin-bottom:16px" data-reveal="">04 — BRAINROT · SIBLING PIPELINE</div>
+        <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(3rem,5.5vw,5.5rem);font-weight:700;letter-spacing:-0.025em;color:#7c6aab;line-height:0.92;margin-bottom:24px" data-reveal="" data-delay="1">Brainrot.</h2>
+
+        <!-- Karaoke sentence -->
+        <div id="brainrot-heading" style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.2rem,2vw,1.7rem);font-weight:400;line-height:1.5;margin-bottom:28px" data-reveal="" data-delay="2">
+          <span class="kw" style="color:#3a3048;font-style:italic">reddit story</span>
+          <span style="color:#2a2234">&nbsp;→&nbsp;</span>
+          <span class="kw" style="color:#3a3048;font-style:italic">TTS narration</span>
+          <span style="color:#2a2234">&nbsp;→&nbsp;</span>
+          <span class="kw" style="color:#3a3048;font-style:italic">gameplay footage</span>
+          <span style="color:#2a2234">&nbsp;→&nbsp;</span>
+          <span class="kw" style="color:#3a3048;font-style:italic">karaoke captions</span>
+        </div>
+
+        <p style="font-size:clamp(0.85rem,1.1vw,0.9375rem);color:#6a6077;line-height:1.72;max-width:400px;font-weight:300;margin-bottom:28px" data-reveal="" data-delay="3">
+          Takes a Reddit micro-story, generates local TTS narration, lays it over split-screen gameplay footage, and burns word-synced karaoke captions. The format that broke TikTok, automated.
+        </p>
+
+        <div style="border:1px solid #1c1828;background:#0a0910;max-width:520px" data-reveal="" data-delay="4">
+          <div style="padding:7px 12px;border-bottom:1px solid #181428;display:flex;align-items:center;gap:5px">
+            <div style="width:7px;height:7px;border-radius:50%;background:#252030"></div>
+            <div style="width:7px;height:7px;border-radius:50%;background:#252030"></div>
+            <div style="width:7px;height:7px;border-radius:50%;background:#252030"></div>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3048;margin-left:8px;letter-spacing:0.08em">brainrot — zsh</span>
+          </div>
+          <div style="padding:12px 14px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#9a8ab8;line-height:1.65">$ python brainrot.py generate --mood funny --telegram</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#4a3d6e;margin-top:4px">  ↳ narration · split-screen · karaoke · $0.01</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="font-size:0.875rem;color:#6a6077;line-height:1.72;font-weight:300;padding-top:80px" data-reveal="">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a3d6e;letter-spacing:0.12em;margin-bottom:14px">WHAT'S DIFFERENT FROM REELGEN</div>
+        <p style="margin-bottom:16px">Brainrot is a separate pipeline optimized for the Reddit-story format. Local TTS via Kokoro-82M (Apache 2.0) — no ElevenLabs bill. Gameplay footage is provided from your own library.</p>
+        <p>Word-synced karaoke burns are the whole point. Every word highlighted on exact cue, in a font stack that doesn't look like a PowerPoint. Works offline, no API required if you skip the story-polish step.</p>
+        <div style="margin-top:24px;padding:16px;border:1px solid #1c1828;background:#0a0910">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a3d6e;letter-spacing:0.1em;margin-bottom:8px">MODES</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#6a6077">--mood funny · touchy · self_realization</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#6a6077">--telegram   (direct-post to Telegram channel)</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#6a6077">--preview    (see the story, skip rendering)</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Brainrot sample frames -->
+    <div class="brainrot-samples-row" style="display:flex;gap:20px;align-items:flex-start">
+      <div data-reveal="">
+        <div class="video-frame" style="position:relative;width:180px;border:1px solid #1c1828;border-radius:18px;overflow:hidden;background:#08070e;aspect-ratio:9/16">
+          <video class="hover-video" src="assets/brainrot1.mp4" muted="" loop="" playsinline="" preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;background:#08070e"></video>
+          <div class="play-hint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4)">
+            <div style="width:36px;height:36px;border:1.5px solid rgba(124,106,171,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="#7c6aab"><path d="M3 2 L10 6 L3 10 Z"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#3a3048;letter-spacing:0.08em;margin-top:8px;text-align:center">brainrot · funny</div>
+      </div>
+      <div data-reveal="" data-delay="1">
+        <div class="video-frame" style="position:relative;width:180px;border:1px solid #1c1828;border-radius:18px;overflow:hidden;background:#08070e;aspect-ratio:9/16">
+          <video class="hover-video" src="assets/brainrot2.mp4" muted="" loop="" playsinline="" preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;background:#08070e"></video>
+          <div class="play-hint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4)">
+            <div style="width:36px;height:36px;border:1.5px solid rgba(124,106,171,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="#7c6aab"><path d="M3 2 L10 6 L3 10 Z"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#3a3048;letter-spacing:0.08em;margin-top:8px;text-align:center">brainrot · touchy</div>
+      </div>
+      <div data-reveal="" data-delay="2">
+        <div class="video-frame" style="position:relative;width:180px;border:1px solid #1c1828;border-radius:18px;overflow:hidden;background:#08070e;aspect-ratio:9/16">
+          <video class="hover-video" src="assets/brainrot3.mp4" muted="" loop="" playsinline="" preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block;background:#08070e"></video>
+          <div class="play-hint" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4)">
+            <div style="width:36px;height:36px;border:1.5px solid rgba(124,106,171,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="#7c6aab"><path d="M3 2 L10 6 L3 10 Z"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#3a3048;letter-spacing:0.08em;margin-top:8px;text-align:center">brainrot · self-realization</div>
+      </div>
+
+      <!-- Aside annotation -->
+      <div style="padding-top:16px;padding-left:16px;max-width:300px" data-reveal="" data-delay="3">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a3d6e;letter-spacing:0.1em;margin-bottom:10px">NOTE</div>
+        <p style="font-size:0.875rem;color:#6a6077;line-height:1.65;font-weight:300">Bring your own gameplay footage. The pipeline handles everything else — TTS, sync, captions. Hover to preview above (muted).</p>
       </div>
     </div>
+
   </div>
+  <div style="border-top:1px solid #1c1828;margin-top:clamp(48px,7vh,80px)"></div>
 </section>
 
-<section>
-  <div class="wrap">
-    <span class="kicker">Under the hood</span>
-    <h2>How a Brainrot reel happens</h2>
-    <div class="steps">
-      <div class="step"><div class="n">1</div><p><b>Story.</b> LLM writes a punchy first-person micro-story in two synced versions: one spelled out for the TTS engine, one formatted for on-screen captions.</p></div>
-      <div class="step"><div class="n">2</div><p><b>Voice.</b> Kokoro-82M (Apache 2.0, runs on CPU) narrates. Three narrator voices, zero API cost.</p></div>
-      <div class="step"><div class="n">3</div><p><b>Alignment.</b> faster-whisper transcribes the audio for timestamps — trusted for timing, never for spelling — then timings snap onto the known script text.</p></div>
-      <div class="step"><div class="n">4</div><p><b>Captions.</b> Real ASS subtitles with word-level karaoke highlight, burned in by libass. Not frame-by-frame image hacks.</p></div>
-      <div class="step"><div class="n">5</div><p><b>Edit.</b> Random non-repeating gameplay slices, concatenated to the narration's exact length, cropped to 1080×1920 — one ffmpeg pass.</p></div>
-      <div class="step"><div class="n">6</div><p><b>Review.</b> Finished reel lands in your Telegram. No auto-posting, by design.</p></div>
+<!-- ══════════════════════════════ LIMITATIONS ═══ -->
+<section id="limitations" style="background:#0e0d0b;padding-bottom:clamp(48px,8vh,96px)">
+
+  <div style="border-bottom:1px solid #1a1812;padding:10px clamp(20px,4vw,72px)">
+    <div style="max-width:1440px;margin:0 auto;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.1em">05 / 05</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a4640;letter-spacing:0.14em">HONEST LIMITATIONS</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.1em">00:04:52:00</span>
     </div>
   </div>
-</section>
 
-<section>
-  <div class="wrap">
-    <span class="kicker">No hype</span>
-    <h2>The honest part</h2>
-    <div class="honest">
-      <ul>
-        <li>Renders take 1–3 minutes per video on CPU — this is a batch tool, not a realtime toy.</li>
-        <li>Free LLM tiers are tight (~20 videos/day on Gemini's free key). Volume needs a paid key.</li>
-        <li>Gameplay footage isn't included — bring footage you have the rights to use.</li>
-        <li>Good editing doesn't guarantee views. Posting cadence and trends still matter more than the cut.</li>
-      </ul>
+  <div style="max-width:1440px;margin:0 auto;padding:clamp(36px,6vh,72px) clamp(20px,4vw,72px) 0">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start">
+
+      <div data-reveal="">
+        <h2 style="font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,4vw,4rem);font-weight:700;color:#e2ddd6;letter-spacing:-0.02em;line-height:0.95;margin-bottom:20px">Honest<br><em style="font-style:italic;color:#6a6460">limitations.</em></h2>
+        <p style="font-size:0.9375rem;color:#6a6460;line-height:1.7;font-weight:300;max-width:340px">The pipeline does a lot, but it doesn't do everything. These are the real constraints, not reframed as features.</p>
+      </div>
+
+      <div data-reveal="" data-delay="1">
+        <!-- Commit log block -->
+        <div style="border:1px solid #1f1d19;background:#0a0908">
+          <div style="padding:8px 14px;border-bottom:1px solid #1a1812;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830;letter-spacing:0.1em">git log --oneline -- LIMITATIONS.md</div>
+          <div style="padding:4px 0">
+
+            <div class="limit-row" style="display:flex;gap:14px;align-items:baseline;padding:9px 14px;border-bottom:1px solid #141210">
+              <span class="limit-hash" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3a3830;flex-shrink:0;transition:color 0.15s">a3f2e1b</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7a7468;line-height:1.5">render time 1–3 min on CPU — no GPU acceleration (yet)</span>
+            </div>
+            <div class="limit-row" style="display:flex;gap:14px;align-items:baseline;padding:9px 14px;border-bottom:1px solid #141210">
+              <span class="limit-hash" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3a3830;flex-shrink:0;transition:color 0.15s">8c4d910</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7a7468;line-height:1.5">free LLM tier ≈ 20 videos/day — bring your own key for more</span>
+            </div>
+            <div class="limit-row" style="display:flex;gap:14px;align-items:baseline;padding:9px 14px;border-bottom:1px solid #141210">
+              <span class="limit-hash" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3a3830;flex-shrink:0;transition:color 0.15s">5b2a234</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7a7468;line-height:1.5">footage rights: your problem, not the pipeline's</span>
+            </div>
+            <div class="limit-row" style="display:flex;gap:14px;align-items:baseline;padding:9px 14px;border-bottom:1px solid #141210">
+              <span class="limit-hash" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3a3830;flex-shrink:0;transition:color 0.15s">7e9f123</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7a7468;line-height:1.5">good editing doesn't guarantee views</span>
+            </div>
+            <div class="limit-row" style="display:flex;gap:14px;align-items:baseline;padding:9px 14px;border-bottom:1px solid #141210">
+              <span class="limit-hash" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3a3830;flex-shrink:0;transition:color 0.15s">2d1c456</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7a7468;line-height:1.5">Whisper accuracy drops on noisy source audio</span>
+            </div>
+            <div class="limit-row" style="display:flex;gap:14px;align-items:baseline;padding:9px 14px">
+              <span class="limit-hash" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#3a3830;flex-shrink:0;transition:color 0.15s">f4a0789</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#7a7468;line-height:1.5">color grades tuned for warm palettes — cool tones YMMV</span>
+            </div>
+
+          </div>
+        </div>
+
+        <p style="font-size:0.875rem;color:#4a4640;line-height:1.65;font-weight:300;margin-top:20px;font-style:italic;font-family:'Cormorant Garamond',serif;font-size:1.05rem">
+          "Good editing doesn't guarantee views — but bad editing guarantees you won't get them."
+        </p>
+      </div>
+
     </div>
   </div>
+  <div style="border-top:1px solid #1a1812;margin-top:clamp(48px,7vh,80px)"></div>
 </section>
 
-<footer>
-  <div class="wrap">
-    <p>MIT licensed · built by <a href="https://rohitsaini.me">Rohit Saini</a> · <a href="https://github.com/rohitsaini1196/ReelGen">github.com/rohitsaini1196/ReelGen</a></p>
+<!-- ═══════════════════════════════════ FOOTER ═══ -->
+<footer style="background:#0e0d0b;padding:clamp(32px,4vh,48px) clamp(20px,4vw,72px)">
+  <div style="max-width:1440px;margin:0 auto">
+    <div class="footer-inner" style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;letter-spacing:0.1em;color:#e2ddd6">REELGEN</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830">MIT License</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3830">·</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#4a4640">
+          built by&nbsp;<a href="https://rohitsaini.me" target="_blank" rel="noopener" class="text-link" style="color:#7a7468">Rohit Saini</a>
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <a href="https://github.com/rohitsaini1196/ReelGen" target="_blank" rel="noopener" class="text-link" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6a6460;letter-spacing:0.06em">github.com/rohitsaini1196/ReelGen</a>
+        <a href="https://github.com/rohitsaini1196/ReelGen" target="_blank" rel="noopener" class="cta-primary" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#ffc832;color:#0e0d0b;font-size:12px;font-weight:500;letter-spacing:0.04em;border:1px solid #ffc832">
+          Star on GitHub
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 8.5L8.5 1.5M8.5 1.5H3M8.5 1.5V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </a>
+      </div>
+    </div>
+    <div style="border-top:1px solid #1a1812;margin-top:24px;padding-top:20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.08em">AI video pipelines that don't look like AI.</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#2e2c28;letter-spacing:0.08em">00:05:00:00 · EOF</span>
+    </div>
   </div>
 </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const app = {};
+app._topics = [
+  '"hidden cafes in Tokyo"',
+  '"late night drives"',
+  '"morning rituals"',
+  '"street photography"',
+  '"quiet mountain towns"',
+  '"golden hour commutes"'
+];
+app._topicIdx = 0;
+app._terminalStopped = false;
+
+app.componentDidMount = function() {
+  app._initReveal();
+  app._initTopicRotation();
+  app._initTerminal();
+  app._initPipelineScroll();
+  app._initKaraoke();
+  app._initHoverPlay();
+}
+
+app.componentWillUnmount = function() {
+  app._terminalStopped = true;
+  clearInterval(app._topicTimer);
+  if (app._pipelineScrollHandler) {
+    window.removeEventListener('scroll', app._pipelineScrollHandler);
+  }
+}
+
+app._sleep = function(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+app._initReveal = function() {
+  const els = document.querySelectorAll('[data-reveal]');
+  if (!els.length) return;
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('is-visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  els.forEach(el => obs.observe(el));
+}
+
+app._initTopicRotation = function() {
+  app._topicTimer = setInterval(() => {
+    app._topicIdx = (app._topicIdx + 1) % app._topics.length;
+    const el = document.getElementById('hero-topic');
+    const cap = document.getElementById('phone-caption');
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-5px)';
+    setTimeout(() => {
+      el.textContent = app._topics[app._topicIdx];
+      if (cap) cap.textContent = app._topics[app._topicIdx].replace(/"/g, '');
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    }, 240);
+  }, 3000);
+}
+
+app._initTerminal = async function() {
+  await app._sleep(900);
+  let run;
+  run = async (idx) => {
+    if (app._terminalStopped) return;
+    const out = document.getElementById('terminal-output');
+    if (!out) return;
+
+    const topic = app._topics[idx % app._topics.length].replace(/"/g, '');
+    const cmd = `$ python reelgen.py generate --topic "${topic}" --mood calm --style warm-analog`;
+
+    out.textContent = '';
+    for (let i = 0; i < cmd.length; i++) {
+      if (app._terminalStopped) return;
+      await app._sleep(16 + Math.random() * 22);
+      out.textContent = cmd.slice(0, i + 1);
+    }
+
+    await app._sleep(320);
+    out.textContent += '\n';
+
+    const stages = [
+      ['  ↳ storyboard  ', 680],
+      ['  ↳ clip search ', 1050],
+      ['  ↳ color grade ', 760],
+      ['  ↳ captions    ', 460]
+    ];
+
+    for (const [label, dur] of stages) {
+      if (app._terminalStopped) return;
+      const blocks = 16;
+      for (let b = 0; b <= blocks; b++) {
+        if (app._terminalStopped) return;
+        await app._sleep(dur / blocks);
+        const bar = '█'.repeat(b) + '░'.repeat(blocks - b);
+        const lines = out.textContent.split('\n');
+        lines[lines.length - 1] = label + bar;
+        out.textContent = lines.join('\n');
+      }
+      const lines = out.textContent.split('\n');
+      lines[lines.length - 1] = label + '████████████████  done';
+      out.textContent = lines.join('\n') + '\n';
+    }
+
+    await app._sleep(140);
+    out.textContent += `reel.mp4  \u2713  $0.01`;
+    await app._sleep(3800);
+
+    if (app._terminalStopped) return;
+    out.style.opacity = '0';
+    await app._sleep(380);
+    if (app._terminalStopped) return;
+    out.textContent = '';
+    out.style.opacity = '1';
+    run(idx + 1);
+  };
+  run(0);
+}
+
+app._initPipelineScroll = function() {
+  const container = document.getElementById('pipeline-container');
+  if (!container) return;
+
+  const stageData = [
+    { title: 'Text input',          annot: 'topic · mood · style — CLI flags',               sub: 'Two hooks generated per topic. Best semantic footage match wins.' },
+    { title: 'LLM storyboard',       annot: 'scene breakdown · voiceover script · pacing',    sub: 'Gemini, Claude, or GPT — swappable backend. Structure first, footage second.' },
+    { title: 'Semantic clip match',  annot: 'CLIP scoring — not keyword matching',             sub: '4-signal QA: sharpness / palette / motion / brightness. Bad footage rejected.' },
+    { title: 'Color grade',          annot: 'FFmpeg color science, not filters',               sub: 'LUTs from footage analysis. warm-analog · cool-stark · raw presets.' },
+    { title: 'Pacing + motion',      annot: 'cut timing · transition curves',                  sub: 'Human-feeling intervals. Not robot-uniform 3s clips everywhere.' },
+    { title: 'Word-synced captions', annot: 'Whisper transcription · frame-accurate burn',    sub: 'Font stack curated. Two caption styles. Karaoke-accurate timing.' },
+    { title: 'Final reel',           annot: 'reel.mp4  \u2713  $0.01',                        sub: "One file. Ready to post. Total cost under a cent on Gemini's free tier." }
+  ];
+
+  let lastStage = -1;
+
+  app._pipelineScrollHandler = () => {
+    const rect = container.getBoundingClientRect();
+    const containerH = container.offsetHeight - window.innerHeight;
+    if (containerH <= 0) return;
+    const scrolled = Math.max(0, -rect.top);
+    const progress = Math.min(1, scrolled / containerH);
+
+    const rawStage = progress * (stageData.length + 0.4);
+    const activeStage = Math.min(Math.floor(rawStage), stageData.length - 1);
+
+    // Update progress line
+    const ppLine = document.getElementById('pp-line');
+    if (ppLine) {
+      ppLine.style.width = (activeStage / (stageData.length - 1) * 100) + '%';
+    }
+
+    // Update stage active states
+    for (let i = 0; i < stageData.length; i++) {
+      const el = document.getElementById('pstage-' + i);
+      if (!el) continue;
+      if (i <= activeStage) el.classList.add('active');
+      else el.classList.remove('active');
+    }
+
+    // Update description
+    if (activeStage !== lastStage) {
+      lastStage = activeStage;
+      const s = stageData[activeStage];
+      const titleEl = document.getElementById('pp-title');
+      const annotEl = document.getElementById('pp-annot');
+      const subEl = document.getElementById('pp-sub');
+      if (titleEl && annotEl && subEl) {
+        titleEl.style.opacity = '0';
+        annotEl.style.opacity = '0';
+        subEl.style.opacity = '0';
+        setTimeout(() => {
+          if (app._terminalStopped) return;
+          titleEl.textContent = s.title;
+          annotEl.textContent = s.annot;
+          subEl.textContent = s.sub;
+          titleEl.style.opacity = '1';
+          annotEl.style.opacity = '1';
+          subEl.style.opacity = '1';
+        }, 130);
+      }
+    }
+  };
+
+  window.addEventListener('scroll', app._pipelineScrollHandler, { passive: true });
+}
+
+app._initKaraoke = function() {
+  const heading = document.getElementById('brainrot-heading');
+  if (!heading) return;
+  const words = heading.querySelectorAll('.kw');
+  if (!words.length) return;
+
+  const obs = new IntersectionObserver(entries => {
+    if (!entries[0].isIntersecting) return;
+    obs.disconnect();
+    let i = 0;
+    const total = words.length * 3 + 1;
+    const cycle = () => {
+      words.forEach((w, idx) => {
+        w.classList.toggle('kw-active', idx === (i % words.length));
+      });
+      i++;
+      if (i < total) {
+        setTimeout(cycle, 370);
+      } else {
+        words.forEach(w => w.classList.remove('kw-active'));
+      }
+    };
+    setTimeout(cycle, 500);
+  }, { threshold: 0.6 });
+
+  obs.observe(heading);
+}
+
+app._initHoverPlay = function() {
+  document.querySelectorAll('.hover-video').forEach(video => {
+    const frame = video.closest('.video-frame');
+    if (!frame) return;
+    frame.addEventListener('mouseenter', () => { video.play().catch(() => {}); });
+    frame.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
+  });
+}
+  app.componentDidMount();
+});
+</script>
 
 </body>
 </html>
